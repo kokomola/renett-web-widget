@@ -57,7 +57,7 @@ const App = props => {
   };
 
   return (
-    <div className="App">
+    <div className="App" style={{backgroundColor: '#4b7885', borderRadius: 44}}>
           <Carousel
       ssr
       partialVisbile
