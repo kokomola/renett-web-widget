@@ -6,11 +6,12 @@ import ReactPlayer from 'react-player'
 
 const host = 'https://renett.botlify.io';
 
-const App = props => {
+const Renett = props => {
 
   const [videos, setVideos] = useState([]);
   
   useEffect(() => {
+
     (async () => {
       if (videos.length === 0) {
         const getNettsRes = await getNetts('new', []);
@@ -74,11 +75,11 @@ const App = props => {
           width='95%'
           controls
           
-          // config={{
-          //   file: {
-          //     forceHLS: true,
-          //   }
-          // }}
+          config={{
+            file: {
+              forceHLS: true,
+            }
+          }}
   />
           // <iframe src="https://videodelivery.net/b841a7bc853745478652feab89545b72/manifest/video.m3u8" style={{border: 'none', height: '500px', width: '98%'}} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe>
         );
@@ -88,4 +89,4 @@ const App = props => {
   );
 }
 
-export default App;
+export default Renett;
