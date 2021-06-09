@@ -1,46 +1,90 @@
 const path = require('path');
+const webpack = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const rootDir = process.cwd();
 const resolve = pathname => path.resolve(rootDir, pathname);
 
-module.exports = {
-  mode: 'production',
-  entry: resolve('src/index.js'),
-  output: {
-    path: resolve('dist'),
-    filename: 'renett.min.js',
-  },
-  module: {
-    rules: [
-      {
-        oneOf: [
-          {
-            test: /.(js|jsx)$/,
-            // exclude: /(node_modules|bower_components)/,
-            use: {
-              loader: 'babel-loader',
+module.exports = (webpackEnv, options) => {
+  const { mode = 'production', watch = false } = options;
+  const isEnvProduction = mode === 'production';
+
+  return {
+    mode,
+    entry: ['@babel/polyfill', './src/index.js'],
+    output: {
+      path: resolve('dist'),
+      filename: 'renett.min.js'
+    },
+    devtool: !isEnvProduction && 'source-map',
+    optimization: {
+      minimize: isEnvProduction,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            parse: {
+              ecma: 8
             },
-            // test: ,
-            // use: ["style-loader", "css-loader"],
-          },
-        ],
-      },
-      {
-        test: /\.css$/,
-        // exclude: /(node_modules|bower_components)/,
-        use: [
-          "style-loader",
-          {
-            loader: "css-loader",
-            options: {
-              modules: true
+            compress: {
+              ecma: 5,
+              warnings: false,
+              comparisons: false,
+              inline: 2
+            },
+            mangle: {
+              safari10: true
+            },
+            output: {
+              ecma: 5,
+              comments: false,
+              ascii_only: true
             }
-          }
-        ]
-      },
-      {test: /\.(eot|woff|woff2|svg|ttf)([\?]?.*)$/, loader: "file-loader"},
-    ],
-  },
-  // Чтобы всё бандлилось в один скрипт для подключения пользователем
-  optimization: { splitChunks: false },
-}
+          },
+          // cache: true,
+          // sourceMap: !isEnvProduction
+        })
+      ],
+      splitChunks: false
+    },
+    resolve: {
+      extensions: ['.js', '.jsx']
+    },
+    module: {
+      rules: [
+        {
+          oneOf: [
+            {
+              test: /.(js|jsx|ts|tsx)$/,
+              // include: ['node_modules'],
+              // exclude: /node_modules/,
+              use: {
+                loader: 'babel-loader'
+              }
+            }
+          ]
+        },
+        {
+          test: /\.css$/,
+          // exclude: /(node_modules|bower_components)/,
+          use: [
+            "style-loader",
+            {
+              loader: "css-loader",
+              // options: {
+              //   modules: true
+              // }
+            }
+          ]
+        },
+        {test: /\.(eot|woff|woff2|svg|ttf)([\?]?.*)$/, loader: "file-loader"},
+      ]
+    },
+    plugins: [
+      new webpack.EnvironmentPlugin({
+        NODE_ENV: isEnvProduction ? 'production' : 'development',
+        BABEL_ENV: isEnvProduction ? 'production' : 'development',
+      })
+    ].filter(Boolean),
+    watch
+  };
+};

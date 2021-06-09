@@ -6,9 +6,11 @@ import reportWebVitals from './reportWebVitals';
 
 
 window.Renett = options => {
+  console.log('options', options);
+  console.log(document.getElementById(options.elementId));
   ReactDOM.render(
     <React.StrictMode>
-      <Renett />
+      <Renett url={options.url} />
     </React.StrictMode>,
     document.getElementById(options.elementId)
   );
