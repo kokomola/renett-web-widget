@@ -1,141 +1,112 @@
-import './App.css';
-import Carousel from 'react-multi-carousel';
-import React from 'react';
-import ReactDOM from 'react-dom';
-import 'react-multi-carousel/lib/styles.css';
-import { useEffect, useState } from 'react';
+import React, { Component } from 'react';
+import ScrollMenu from 'react-horizontal-scrolling-menu';
 import ReactPlayer from 'react-player'
-import { Stream } from "@cloudflare/stream-react";
+import './App.css';
+import { getNetts } from './network';
+import emojiIcon from './images/emoji.png';
+import { monthNames } from './constant';
 
-const host = 'https://renett.botlify.io';
-
-const Renett = props => {
-
-  // const [videos, setVideos] = useState([{video: 'https://videodelivery.net/394474b9e5a20a01f2722244e82cbc8e/manifest/video.m3u8', isPlay: false}, {video: 'https://videodelivery.net/7bd3002b060dd9b377055fba9c798089/manifest/video.m3u8', isPlay: false},{video: 'https://videodelivery.net/3b35f476f826aa97a26e8d1010aeae1a/manifest/video.m3u8', isPlay: false},{video: 'https://videodelivery.net/3b35f476f826aa97a26e8d1010aeae1a/manifest/video.m3u8', isPlay: false}]);
-  const [videos, setVideos] = useState([]);
-
-  useEffect(() => {
-
-    (async () => {
-      if (videos.length === 0) {
-        const getNettsRes = await getNetts('new', []);
-        const videoArr = [];
-        getNettsRes.data.map(nett => {
-          const splited = nett.video.split('.');
-          if (splited[splited.length - 1] === 'm3u8') {
-            nett.isPlay = false;
-            videoArr.push(nett);
-          }
-        })
-        console.log('videoArr',videoArr);
-        setVideos(videoArr);
-      }
-    })();
-  });
-
-  const getNetts = async (order, spheres, skip = 0) => {
-    const sphereQuery = spheres.map(sp => `&spheres[]=${sp.title}`).join('');
-    const headers = {'content-type': 'application/json'};
-    const response = await fetch(`${host}/netts?order=${order}${sphereQuery}&skip=${skip}&url=${props.url}`, {
-      method: 'get',
-      headers,
-    });
-    const json = await response.json();
-  
-    return {data: json.data, status: response.status};
+const MenuItem = ({el}) => {
+  const convertDateFormat = date => {
+    const newDate = new Date(date);
+    // console.log('newDate', monthNames[newDate.getMonth()], ' ', newDate.getDay());
+    return monthNames[newDate.getMonth()] + ' ' + newDate.getDay();
   };
 
-  const responsive = {
-    desktop: {
-      breakpoint: { max: 3000, min: 1024 },
-      items: 3,
-      paritialVisibilityGutter: 60
-    },
-    tablet: {
-      breakpoint: { max: 1024, min: 464 },
-      items: 2,
-      paritialVisibilityGutter: 50
-    },
-    mobile: {
-      breakpoint: { max: 464, min: 0 },
-      items: 1,
-      paritialVisibilityGutter: 30
+  return(
+    <div key={el.id}  className='player-wrapper'>
+      <div className='player-top-menu'>
+        <img className='player-author-avatar' src={el.author.avatar} />
+        <div className='player-author-username'>{el.author.username}</div>
+      </div>
+      <ReactPlayer className='react-player' width='200px' height='320px' url={el.video} playing={el.playing}  />
+      <div className='player-description-container'>
+        <div className='player-date'>{convertDateFormat(el.createdAt)}</div>
+        <div className='player-description'>{el.description}</div>
+      </div>
+      <div className='player-reaction-container'>
+        <img className='player-reaction-icon' src={emojiIcon} />
+        <div className='player-reaction-counter'>{el.reactions.length}</div>
+      </div>
+    </div>
+    );
+};
+
+export const Menu = (list) =>
+  list.map((el, index) => {
+    return <MenuItem el={el} key={index}/>;
+  });
+
+
+const Arrow = ({ text, className }) => {
+  return (
+    <div
+      className={className}
+    >{text}</div>
+  );
+};
+
+
+const ArrowLeft = Arrow({ text: '<', className: 'arrow-prev' });
+const ArrowRight = Arrow({ text: '>', className: 'arrow-next' });
+
+const selected = 'item1';
+
+export default class Renett extends Component {
+  constructor(props) {
+    super(props);
+    // call it again if items count changes
+    // this.menuItems = Menu(list, selected);
+    // this.setState({menuItems: Menu(list, selected)})
+    // console.log('this.menuItems', this.state.menuItems);
+  }
+
+  async componentDidMount() {
+    // console.log('url', this.props.url);
+    const getNettsRes = await getNetts('new', [], this.props.url);
+    if (getNettsRes.status === 200) {
+      // this.menuItems = Menu(getNettsRes.data, selected);
+      console.log('getNettsRes', getNettsRes.data); 
+      // this.setState({menuItems: Menu(list, selected)})
+      this.setState({listItems: getNettsRes.data});
+      this.setState({menuItems: Menu(getNettsRes.data, selected)});
     }
   };
 
-  const renderReactions = reaction => {
-    switch(reaction) {
-      case 'brain':
-        return "🧠";
-      case 'star_struck':
-         return "🤩";
-      case 'heart_eyes':
-         return "😍";
-      case 'joy':
-         return "😂";
-      case 'clap':
-          return "👏";
-      case 'hmm':
-          return "🤔";
-      case 'open_mouth':
-          return "😮";
-      case 'sleeping':
-          return "😴";
-      case 'exploding_head':
-          return "🤯";
-      case 'angry':
-          return "😡";
-        default:
-          break;
-    };
+  state = {
+    selected,
+    menuItems: null,
+    listItems: null,
   };
 
-  return (
-    <div className="App" style={{backgroundColor: '#4b7885', borderRadius: 44}}>
-          <Carousel
-      // ssr
-      partialVisbile
-      deviceType={props.deviceType}
-      itemClass="image-item"
-      responsive={responsive}
-      asd
-    >
-      {videos.map(vid => {
-        return (
-          <div style={{flexDirection: 'row'}}>
-            <div >
-              <div style={{position: 'absolute', bottom: 80, zIndex: 2, left: 0}}>
-                <div style={{zIndex: 2, textAlign: 'start', color:'white', fontWeight: 'bold', fontSize: 32}}>{vid.description}</div>
-                <div style={{zIndex: 2, textAlign: 'start', color:'white', fontWeight: 'bold', fontSize: 32}}>@{vid.author.username}</div>
-              </div>
-              <div style={{position: 'absolute', bottom: 60, right: 0, zIndex: 2, fontSize: 32, color: 'white'}}>{vid.reactions.length} {vid.reactions.slice(0,2).map(reac => renderReactions(reac.type))}</div>
-              <div style={{position: 'absolute', top: 20, left: 20, backgroundColor: 'rgba(128, 128, 128, 0.45)', borderRadius: 20, zIndex: 2, padding: 5}}>{vid.spheres.slice(0,2).map(sphere => (<img style={{width: 32, height: 32}} src={sphere.icon} />))}</div>           
-            {/* <ReactPlayer className='react-player'
-            // This is the video address passed from the superior page
-            url={vid.video}
-            key={vid.video}
-            playing={vid.isPlay}
-            // playing={vid.isPlay}
-            // width='95%'
-            // light={true}
-            width='240px'
-            // controls={true}
-            zIndex={5}
-            // wrapper=
-            config={{
-              file: {
-                forceHLS: true,
-              }
-            }}/> */}
-            <Stream key={vid.video} controls src={vid.video} />
-          </div>
-          </div>
-          // <iframe src="https://videodelivery.net/b841a7bc853745478652feab89545b72/manifest/video.m3u8" style={{border: 'none', height: '500px', width: '98%'}} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen="true"></iframe>
-        );
-      })}
-    </Carousel>
-    </div>
-  );
-}
+  onSelect = key => {
+    console.log('key', key);
+    const {listItems} = this.state;
+    if (listItems[key].playing) {
+      listItems[key].playing = false;
+    } else {
+      listItems[key].playing = true;
+    }
+    // this.setState({ selected: key });
+    this.setState({menuItems: Menu(listItems, selected)})
+  }
 
-export default Renett;
+  render() {
+    return (
+      <div className="App">
+        {this.state.menuItems && 
+        <ScrollMenu
+          data={this.state.menuItems}
+          scrollBy={2}
+          // innerWrapperClass='menu-wrapper--inner'
+          // innerWrapperStyle={{transform: 0}}
+          arrowLeft={ArrowLeft}
+          arrowRight={ArrowRight}
+          wheel={false}
+          inertiaScrolling={true}
+          onSelect={this.onSelect}
+        />}
+      </div>
+    );
+  }
+}
